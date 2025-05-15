@@ -134,7 +134,8 @@ class CY_PromptComposer():
         if len(remove_tag) > 0:
             remove_tags = process_tag_str(remove_tag)
             for tag in remove_tags:
-                del edited_tags[tag]
+                if tag in edited_tags:
+                    del edited_tags[tag]
 
         prompt = "".join([f"{t}, " * n for t, n in edited_tags.items()])
         return (prompt,)
