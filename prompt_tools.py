@@ -21,6 +21,7 @@ class CY_TextBox():
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("text",)
 
+
 class CY_LoadPrompt():
     CATEGORY = "CY"
     FUNCTION = "load_prompt"
@@ -47,6 +48,53 @@ class CY_LoadPrompt():
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("prompt",)
 
+
+class CY_LoadPrompt4():
+    CATEGORY = "CY"
+    FUNCTION = "load_prompt_multi"
+
+    empty_prompt = "-----"
+    prompt_folder = Path(__file__).parent / "prompts"
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        prompt_files = [cls.empty_prompt] + list(glob_files(cls.prompt_folder, ".txt"))
+        return {
+            "required": {
+                "remove_duplicate": ("BOOLEAN", {"default": True}),
+                "prompt": ("STRING", {"default": ""}),
+                "file1": (prompt_files, {"default": cls.empty_prompt}),
+                "file2": (prompt_files, {"default": cls.empty_prompt}),
+                "file3": (prompt_files, {"default": cls.empty_prompt}),
+                "file4": (prompt_files, {"default": cls.empty_prompt}),
+            }
+        }
+
+    def load_prompt_multi(
+        self,
+        remove_duplicate: bool,
+        prompt: str,
+        file1: str,
+        file2: str,
+        file3: str,
+        file4: str,
+    ):
+        edited_tags = OrderedDict()
+        if len(prompt) > 0:
+            update_tag_dict(edited_tags, process_tag_str(prompt), remove_duplicate)
+
+        for file_path in [file1, file2, file3, file4]:
+            if file_path != self.empty_prompt:
+                loaded_tags = load_prompt_file(self.prompt_folder / f"{file_path}.txt")
+                update_tag_dict(edited_tags, loaded_tags, remove_duplicate)
+
+        prompt = "".join([f"{t}, " * n for t, n in edited_tags.items()])
+        return (prompt,)
+
+    RETURN_TYPES = ("STRING",)
+    RETURN_NAMES = ("prompt",)
+
+
 class CY_LoadPromptPro():
     CATEGORY = "CY"
     FUNCTION = "load_prompt_pro"
@@ -54,20 +102,23 @@ class CY_LoadPromptPro():
     empty_prompt = "-----"
     prompt_folder = Path(__file__).parent / "prompts"
     character_folder = Path(__file__).parent / "prompts"/ "character"
+    cloth_folder = Path(__file__).parent / "prompts"/ "cloth"
+    pose_folder = Path(__file__).parent / "prompts"/ "pose"
     style_folder = Path(__file__).parent / "prompts"/ "style"
 
     @classmethod
     def INPUT_TYPES(cls):
         charcater_prompt_files = [f.stem for f in cls.character_folder.iterdir() if f.suffix == ".txt"]
+        cloth_prompt_files = [cls.empty_prompt] + [f.stem for f in cls.cloth_folder.iterdir() if f.suffix == ".txt"]
+        pose_prompt_files = [cls.empty_prompt] + [f.stem for f in cls.pose_folder.iterdir() if f.suffix == ".txt"]
         style_prompt_files = [cls.empty_prompt] + [f.stem for f in cls.style_folder.iterdir() if f.suffix == ".txt"]
-        other_files = [cls.empty_prompt] + glob_files(cls.prompt_folder, ".txt")
         return {
             "required": {
                 "remove_duplicate": ("BOOLEAN", {"default": True}),
                 "character": (sorted(charcater_prompt_files),),
+                "cloth": (sorted(cloth_prompt_files), {"default": cls.empty_prompt}),
+                "pose": (sorted(pose_prompt_files), {"default": cls.empty_prompt}),
                 "style": (sorted(style_prompt_files), {"default": cls.empty_prompt}),
-                "other1": (other_files, {"default": cls.empty_prompt}),
-                "other2": (other_files, {"default": cls.empty_prompt}),
             }
         }
 
@@ -75,29 +126,30 @@ class CY_LoadPromptPro():
         self,
         remove_duplicate: bool,
         character: str,
-        style: str,
-        other1: str,
-        other2: str
+        cloth: str,
+        pose: str,
+        style: str
     ):
         edited_tags = OrderedDict()
 
         character_tags = load_prompt_file(self.character_folder / f"{character}.txt")
         edited_tags = update_tag_dict(edited_tags, character_tags, remove_duplicate)
+        if cloth != self.empty_prompt:
+            cloth_tags = load_prompt_file(self.cloth_folder / f"{cloth}.txt")
+            edited_tags = update_tag_dict(edited_tags, cloth_tags, remove_duplicate)
+        if pose != self.empty_prompt:
+            pose_tags = load_prompt_file(self.pose_folder / f"{pose}.txt")
+            edited_tags = update_tag_dict(edited_tags, pose_tags, remove_duplicate)
         if style != self.empty_prompt:
             style_tags = load_prompt_file(self.style_folder / f"{style}.txt")
             edited_tags = update_tag_dict(edited_tags, style_tags, remove_duplicate)
-        if other1 != self.empty_prompt:
-            other_tags = load_prompt_file(self.prompt_folder / f"{other1}.txt")
-            edited_tags = update_tag_dict(edited_tags, other_tags, remove_duplicate)
-        if other2 != self.empty_prompt:
-            other_tags = load_prompt_file(self.prompt_folder / f"{other2}.txt")
-            edited_tags = update_tag_dict(edited_tags, other_tags, remove_duplicate)
 
         prompt = "".join([f"{t}, " * n for t, n in edited_tags.items()])
         return (prompt,) 
 
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("prompt",)
+
 
 class CY_PromptComposer():
     CATEGORY = "CY"
@@ -178,6 +230,7 @@ def glob_files(base_folder: str, suffix: str) -> List[str]:
 NODE_CLASS_MAPPINGS = {
     "CY_TextBox": CY_TextBox,
     "CY_LoadPrompt": CY_LoadPrompt,
+    "CY_LoadPrompt4": CY_LoadPrompt4,
     "CY_LoadPromptPro": CY_LoadPromptPro,
     "CY_PromptComposer": CY_PromptComposer,
 }
@@ -185,6 +238,7 @@ NODE_CLASS_MAPPINGS = {
 NODE_DISPLAY_NAME_MAPPINGS = {
     "CY_TextBox": "CY_TextBox",
     "CY_LoadPrompt": "CY_LoadPrompt",
+    "CY_LoadPrompt4": "CY_LoadPrompt4",
     "CY_LoadPromptPro": "CY_LoadPromptPro",
     "CY_PromptComposer": "CY_PromptComposer",
 }
